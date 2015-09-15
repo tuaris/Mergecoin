@@ -252,7 +252,7 @@ First we need to log in as `root` to set up dependencies and make sure that our
 user can use the sudo command. Type/paste the following in the terminal:
 
 ```bash
-apt-get install git ruby sudo apt-cacher-ng qemu-utils debootstrap lxc python-cheetah parted kpartx bridge-utils make ubuntu-archive-keyring
+apt-get install git ruby sudo apt-cacher-ng qemu-utils libvirt-bin debootstrap lxc python-cheetah parted kpartx bridge-utils make ubuntu-archive-keyring
 adduser debian sudo
 ```
 
@@ -262,15 +262,23 @@ Then set up LXC and the rest with the following, which is a complex jumble of se
 # the version of lxc-start in Debian 7.4 needs to run as root, so make sure
 # that the build script can exectute it without providing a password
 echo "%sudo ALL=NOPASSWD: /usr/bin/lxc-start" > /etc/sudoers.d/gitian-lxc
-# add cgroup for LXC
-echo "cgroup  /sys/fs/cgroup  cgroup  defaults  0   0" >> /etc/fstab
-# make /etc/rc.local script that sets up bridge between guest and host
-echo '#!/bin/sh -e' > /etc/rc.local
-echo 'brctl addbr br0' >> /etc/rc.local
-echo 'ifconfig br0 10.0.3.2/24 up' >> /etc/rc.local
-echo 'exit 0' >> /etc/rc.local
-# make sure that USE_LXC is always set when logging in as debian,
-# and configure LXC IP addresses
+```
+
+Set up bridge between guest and host
+
+```
+echo 'auto br0' > /etc/network/interfaces.d/br0
+echo 'iface br0 inet static' >> /etc/network/interfaces.d/br0
+echo 'bridge_ports none' >> /etc/network/interfaces.d/br0
+echo 'address 10.0.3.2' >> /etc/network/interfaces.d/br0
+echo 'netmask 255.255.255.0' >> /etc/network/interfaces.d/br0
+```
+
+Make sure that USE_LXC is always set when logging in as debian and configure LXC IP addresses
+
+```
+echo '' >> /home/debian/.profile
+echo '# Gitian Builder' >> /home/debian/.profile
 echo 'export USE_LXC=1' >> /home/debian/.profile
 echo 'export GITIAN_HOST_IP=10.0.3.2' >> /home/debian/.profile
 echo 'export LXC_GUEST_IP=10.0.3.5' >> /home/debian/.profile
